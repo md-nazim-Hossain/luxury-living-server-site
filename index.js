@@ -47,6 +47,14 @@ async function run() {
             const result = await orderList.toArray();
             res.json(result);
         });
+
+        /// GET ORDER API
+        app.get('/orderList/:id' , async (req,res) =>{
+            const id = req.params.id;
+            const query = {_id:ObjectId(id)};
+            const result = await orderListCollection.findOne(query);
+            res.json(result);
+        });
        
         //SERVICES GET API
         app.get('/services', async (req, res) =>{
@@ -55,18 +63,18 @@ async function run() {
             res.json(result);
         });
 
-        //PROJECTS GET API
-        app.get('/projects', async (req, res) =>{
-            const projects = projectsCollection.find({});
-            const  result = await projects.toArray();
-            res.json(result);
-        });
-
         //GET SERVICE BY ID
         app.get('/services/:serviceId', async (req, res) =>{
             const id = req.params.serviceId;
             const query = { _id:ObjectId(id)};
             const result = await servicesCollection.findOne(query);
+            res.json(result);
+        });
+        
+        //PROJECTS GET API
+        app.get('/projects', async (req, res) =>{
+            const projects = projectsCollection.find({});
+            const  result = await projects.toArray();
             res.json(result);
         });
 
