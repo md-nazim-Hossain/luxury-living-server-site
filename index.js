@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const { MongoClient } = require('mongodb');
 const ObjectId = require('mongodb').ObjectId;
 require('dotenv').config();
@@ -10,6 +11,7 @@ const port = process.env.PORT || 5000;
 //Midleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.pbvyd.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -26,6 +28,7 @@ async function run() {
         const orderListCollection = database.collection("orderList");
         const projectsCollection = database.collection("projects");
         
+
         /// GET CUSTOMER REVIEWS API
         app.get('/reviews' , async (req,res) =>{
             const reviews = reviewsCollection.find({});
@@ -35,9 +38,19 @@ async function run() {
 
         /// GET CUSTOMER REVIEWS API
         app.get('/orderList' , async (req,res) =>{
-            const orderList = orderListCollection.find({});
-            const result = await orderList.toArray();
-            res.json(result);
+            const cursor = orderListCollection.find({});
+            const page = req.query.page;
+            const size = parseInt(req.query.size);
+            let orderList;
+            const count = await cursor.count();
+
+            if(page){
+                orderList = await cursor.skip(page*size).limit(size).toArray();
+            }
+            else{
+                orderList = await cursor.toArray();
+            }
+            res.json({count,orderList});
         });
 
         /// GET CUSTOMER REVIEWS API
@@ -48,14 +61,6 @@ async function run() {
             res.json(result);
         });
 
-        /// GET ORDER API
-        app.get('/orderList/:id' , async (req,res) =>{
-            const id = req.params.id;
-            const query = {_id:ObjectId(id)};
-            const result = await orderListCollection.findOne(query);
-            res.json(result);
-        });
-       
         //SERVICES GET API
         app.get('/services', async (req, res) =>{
             const services = servicesCollection.find({});
@@ -120,6 +125,23 @@ async function run() {
             res.json(result);
         });
 
+        ///PAYMENT INTREGRATION
+        app.post("/create-payment-intent", async (req, res) => {
+        const  {serviceCost}  = req.body;
+        const amount = serviceCost * 100;
+        // Create a PaymentIntent with the order amount and currency
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amount,
+            currency: "usd",
+            payment_method_types:['card'],
+            
+        });
+
+        res.json({
+            clientSecret: paymentIntent.client_secret,
+        });
+        });
+
         //PUT USERS FROM CLIENT TO DB
         app.put('/users', async (req,res) =>{
             const user = req.body;
@@ -159,6 +181,7 @@ async function run() {
             res.json(result);
         });
 
+
     } finally {
     //   await client.close();
     }
@@ -172,4 +195,5 @@ app.get('/',(req,res) =>{
 
 app.listen(port,()=>{
     console.log('Listenning Port is',port);
+    console.log(process.env.PAYMENT_SECRET_KEY)
 })
