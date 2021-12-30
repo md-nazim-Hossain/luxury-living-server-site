@@ -154,10 +154,10 @@ async function run() {
 
         /// GET CUSTOMER Order API
         app.put('/orderList/:id' , async (req,res) =>{
-            const status = req.body;
+            const getInfo = req.body;
             const id = req.params.id;
             const filter = { _id:ObjectId(id)}
-            const doc ={$set:status}
+            const doc ={$set:getInfo}
             const result = await orderListCollection.updateOne(filter,doc);
             res.json(result);
         });
@@ -181,6 +181,14 @@ async function run() {
             res.json(result);
         });
 
+         /// Delete Service API
+         app.delete('/services/:id' , async (req,res) =>{
+            const id = req.params.id;
+            const filter = { _id:ObjectId(id)}
+            const result = await servicesCollection.deleteOne(filter);
+            res.json(result);
+        });
+
 
     } finally {
     //   await client.close();
@@ -195,5 +203,4 @@ app.get('/',(req,res) =>{
 
 app.listen(port,()=>{
     console.log('Listenning Port is',port);
-    console.log(process.env.PAYMENT_SECRET_KEY)
 })
